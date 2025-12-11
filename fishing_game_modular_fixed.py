@@ -1031,10 +1031,25 @@ def draw_fish_index_screen(screen, font, inventory, game_data):
                 name_text = font.render(fish['name'], True, BLACK)
                 screen.blit(name_text, (x + 10, y + 40))
         else:
-            # Display question mark for uncaught fish
-            question_text = font.render("?", True, BLACK)
-            question_rect = question_text.get_rect(center=(x + fish_size // 2, y + fish_size // 2))
-            screen.blit(question_text, question_rect)
+            # Load fish texture for uncaught fish and apply greyed out effect
+            fish_texture = load_fish_texture(fish['name'])
+            if fish_texture:
+                # Scale down the texture to fit
+                scaled_texture = pygame.transform.scale(fish_texture, (fish_size - 10, fish_size - 10))
+
+                # Create a copy of the texture to modify
+                greyed_texture = scaled_texture.copy()
+
+                # Apply greyed out effect with 70% transparency
+                greyed_texture.fill((128, 128, 128, 178), special_flags=pygame.BLEND_RGBA_MULT)
+
+                # Draw the greyed out texture
+                screen.blit(greyed_texture, (x + 5, y + 5))
+            else:
+                # Display question mark if texture not found
+                question_text = font.render("?", True, BLACK)
+                question_rect = question_text.get_rect(center=(x + fish_size // 2, y + fish_size // 2))
+                screen.blit(question_text, question_rect)
 
         # Display fish name below
         name_text = font.render(fish['name'], True, BLACK)
@@ -1233,10 +1248,9 @@ def main():
     # Game stages
     stages = [
         CastTimingStage(),
-        DepthControlStage(), 
+        DepthControlStage(),
         BiteReactionStage(),
-        ReelingRhythmStage(),
-        LineTensionStage()
+        ReelingRhythmStage()
     ]
     
     current_state = GameState.MAIN_MENU
@@ -1279,8 +1293,7 @@ def main():
                                 CastTimingStage(),
                                 DepthControlStage(),
                                 BiteReactionStage(),
-                                ReelingRhythmStage(),
-                                LineTensionStage()
+                                ReelingRhythmStage()
                             ]
                         elif button.text == "GUIDE":
                             current_state = GameState.GUIDE
@@ -1331,7 +1344,7 @@ def main():
         
         elif current_state == GameState.FISHING:
             # Update current stage
-            if current_stage <= 5:
+            if current_stage <= 4:
                 stage_index = current_stage - 1
                 stages[stage_index].update(dt)
 
@@ -1340,25 +1353,12 @@ def main():
 
                 # Check if stage completed
                 if stages[stage_index].completed:
-                    if current_stage < 5:
+                    if current_stage < 4:
                         current_stage += 1
                     else:
-                        # Calculate final results with enhanced quality system
+                        # Calculate final results with simplified quality system (4 stages only)
                         stage_scores = [stage.score for stage in stages]
-                        
-                        # ENHANCED QUALITY SCORING: (stage_scores_avg * 0.7) + (target_square_time_ratio * 0.3)
-                        stage_avg = sum(stage_scores) / len(stage_scores)
-                        target_stage = stages[4]  # LineTensionStage
-                        
-                        # Calculate target square time ratio
-                        total_time = target_stage.time_in_target + target_stage.time_out_target
-                        if total_time > 0:
-                            target_ratio = (target_stage.time_in_target / total_time) * 100
-                        else:
-                            target_ratio = 0
-                        
-                        # Final quality calculation
-                        quality_score = (stage_avg * 0.7) + (target_ratio * 0.3)
+                        quality_score = sum(stage_scores) / len(stage_scores)
                         quality = calculate_quality([quality_score])
 
                         # Spawn fish
